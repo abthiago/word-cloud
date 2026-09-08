@@ -7,13 +7,17 @@ for.
 
 **Live page:** https://abthiago.github.io/word-cloud/
 
-Three views of the same answers, switchable in the top right:
+Two views of the same answers, switchable in the top right:
 
 | View | What it shows | Direct link |
 | --- | --- | --- |
 | Phrases | Each answer kept as the participant phrased it, so `Knowledge Management` stays one term | [`?view=phrases`](https://abthiago.github.io/word-cloud/?view=phrases) |
 | Single words | Answers broken into individual words, stop words removed | [`?view=words`](https://abthiago.github.io/word-cloud/?view=words) |
-| Motion | The phrases view, animated — for playing on screen while the room fills up | [`?view=motion`](https://abthiago.github.io/word-cloud/?view=motion) |
+
+There was a third, animated *Motion* view. It has been removed: it did not work
+reliably in the room, and a broken control on a page that goes on a projector is
+worse than no control. The engine and its `?view=motion` link are gone rather
+than hidden, so there is no dead code left behind.
 
 ## Full screen
 
@@ -33,29 +37,60 @@ allowed to grow.
 `Save PNG` exports the cloud at 2× for a slide or a print. It always exports
 on white in the light-mode colours and with every term at its resting
 position, so the file is the same picture whether you took it in dark mode or
-part-way through the animation.
+light.
 
-## The Motion view
+## The look comes from the printed invitation
 
-Motion reuses the phrases layout and animates it, rather than placing terms on
-the fly — so nothing overlaps and no term is dropped, which is the usual
-failure of an animated word cloud. Three things move at once:
+The page is styled to match the official invitation flyer,
+`CS-2775_Flyer_Roundtable agenda_1_F.pdf`. Nothing was approximated by eye: the
+colours were read out of the PDF's own drawing operators, and the icons are the
+flyer's own artwork, extracted from the file rather than redrawn.
 
-- **Entrance** — terms fade and grow into place, staggered, so the room watches
-  the cloud assemble instead of arriving at a wall of type.
-- **Drift** — a slow per-term wander. Small terms roam further than large ones,
-  which is what stops the whole plate looking like jelly.
-- **Spotlight** — attention travels through the terms, largest first, lifting
-  one and settling the rest. It loops seamlessly, so it reads like a GIF
-  without being one.
+The flyer itself is **not committed** — see
+[Why the flyer is not committed](#why-the-flyer-is-not-committed). The artwork
+extracted from it is, in `assets/`.
 
-Colour never changes during the animation. Colour is the frequency encoding
-here, so borrowing it for emphasis would say something untrue about the data.
+| From the flyer | Where it is used |
+| --- | --- |
+| Ground cream `#F7F4EF` | the page behind the plate — `--field` |
+| Card cream `#EEE7D7` | the When / Where / Who tiles — `--card` |
+| Ink `#1E1E1E` | body text, and terms raised more than once — `--ink` |
+| Orange `#FF551D` | the accent, and terms raised most often — `--orange` |
+| Blue `#2354FF` | links, and terms added by hand — `--blue` |
+| Calendar, globe and speech-bubble icons | `assets/icon-when.png`, `assets/icon-where.png`, `assets/icon-who.png` |
+| Orange shard graphic | `assets/vortex-mark.png` (the brand chip in the top bar) and `assets/vortex.jpg` (the faint corner bleed) |
+| Tiempos Text headline, roman + italic | the top-bar headline, with *in the lab* italic exactly as the flyer sets it |
+| National 2 body | the interface type |
 
-A **Pause** button appears under the plate whenever Motion is running. If your
-system is set to *reduce motion*, the cloud is held still and says so — the
-constants that drive the animation are in the `MOTION` block at the top of the
-motion section in [`app.js`](app.js) if you want it faster or calmer.
+Neither Elsevier face is licensed for the open web, so **Source Serif 4** stands
+in for Tiempos Text and **IBM Plex Sans** for National 2 — the closest free
+matches in structure and weight. Both load from Google Fonts.
+
+The three icons come out of the PDF as ink-and-orange PNGs on a transparent
+ground, which is why each one is stamped on its own cream tile: the tile keeps
+the artwork legible in dark mode without touching the artwork itself.
+
+To pull the assets out of the flyer again — after a new version of it, say —
+put your copy of the PDF next to the script and run:
+
+```
+python extract-flyer-assets.py
+```
+
+It fails loudly rather than half-extracting if the flyer has been re-exported
+and its embedded images have been renamed.
+
+## When / Where / Who
+
+The three facts above the plate are the flyer's own three cards, in the flyer's
+own order, with the flyer's own icons: **Wednesday 9 September 2026**,
+**Elsevier office, Amsterdam Sloterdijk**, **Senior R&D digitization leaders**.
+They sit above the cloud because anyone arriving on the link needs to know what
+the cloud is for before they read it, and they are outside the element that goes
+full screen, so the projected cloud never carries them.
+
+To change them, edit the `<ul class="facts">` block in
+[`index.html`](index.html) — they are plain markup, not data.
 
 ## Dark mode
 
@@ -164,6 +199,17 @@ those raised once, and blue for terms added by hand.
 
 ## Sources
 
+- **Design, icons, typography and the When / Where / Who details:** the official
+  invitation flyer `CS-2775_Flyer_Roundtable agenda_1_F.pdf`. Produced in Canva,
+  authored 2026-07-24, `/Title` *CS-2775_Flyer_Roundtable agenda*, one page. The
+  icons in `assets/` are that file's embedded images `X21` (calendar), `X19`
+  (globe) and `X17` (speech bubbles), extracted unaltered by
+  `extract-flyer-assets.py`; `assets/vortex.jpg` and `assets/vortex-mark.png`
+  are downscales and a centre crop of its embedded image `X4`; the palette
+  values are the file's own fill colours. The PDF is **not committed** — it
+  lives only in the account manager's OneDrive, next to `build-dataset.py`.
+- **RSVP form linked from the flyer and cited in the page caption:**
+  https://forms.office.com/r/PS1rWkLcVF
 - **Participant keywords:** Microsoft Forms export
   `Round table participants 24 08 2026.xlsx`, sheet `Sheet1`, column
   `Keywords – what's on your mind? (The purpose of this is to create a relevant
@@ -171,6 +217,19 @@ those raised once, and blue for terms added by hand.
   2026-09-08 by `build-dataset.py`.
 - The spreadsheet itself is **not in this repository** and is not published. It
   lives only in the account manager's OneDrive.
+
+### Why the flyer is not committed
+
+The flyer is marked *"Closed-door and confidential. No marketing output, no
+attribution."* — publishing it in a world-readable repository would not honour
+that. Its sign-up button is also an Outlook safelink with an Elsevier
+colleague's e-mail address baked into the query string, which should not be
+indexed either. `.gitignore` therefore excludes it.
+
+What is published from it is the artwork in `assets/` and the values in the
+table above — no confidential text, and no addresses. The clean RSVP link cited
+in the page caption, https://forms.office.com/r/PS1rWkLcVF, is the same form
+without the safelink wrapper.
 
 ### Why the spreadsheet is not committed
 
@@ -185,7 +244,8 @@ own copy of the spreadsheet placed next to `build-dataset.py`.
 
 ## Hosting it yourself
 
-The page is three static files plus a data folder, so any static host works.
+The page is three static files plus a data folder and an assets folder, so any
+static host works.
 For GitHub Pages: in the repository, open **Settings → Pages**, set **Source**
 to *Deploy from a branch*, pick the default branch and the `/ (root)` folder,
 and save. The page is live at `https://<user>.github.io/<repo>/` within a minute
@@ -206,12 +266,15 @@ too.
 | --- | --- |
 | `index.html` | The page |
 | `styles.css` | All styling. Elsevier palette and type scale are the custom properties at the top; the dark theme re-points them at the bottom |
-| `app.js` | Term processing, the three views, the motion engine, theming, colour weighting, PNG export |
+| `app.js` | Term processing, the two views, theming, colour weighting, PNG export |
 | `data/presets.js` | Generated dataset — do not edit by hand |
 | `data/manual-terms.js` | Hand-edited extra terms — safe to edit, never regenerated |
 | `build-dataset.py` | Turns the spreadsheet into `data/presets.js` |
+| `extract-flyer-assets.py` | Pulls the icons and the shard graphic out of the invitation PDF into `assets/` |
+| `assets/` | The five images taken from the invitation — generated, do not edit by hand |
+| `CS-2775_Flyer_Roundtable agenda_1_F.pdf` | The official invitation: the source of the palette, the type, the icons and the three facts |
 
 [d3](https://d3js.org/) and
 [d3-cloud](https://github.com/jasondavies/d3-cloud) load from jsDelivr;
-IBM Plex Sans loads from Google Fonts. Nothing else is fetched, and nothing
-leaves the browser.
+IBM Plex Sans and Source Serif 4 load from Google Fonts. Nothing else is
+fetched, and nothing leaves the browser.

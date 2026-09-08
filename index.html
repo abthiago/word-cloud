@@ -23,7 +23,11 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet" />
+<!-- Source Serif 4 stands in for Tiempos Text, the serif on the printed
+     invitation; IBM Plex Sans stands in for National 2. Neither Elsevier
+     face is licensed for the open web, and these are the closest free
+     matches in structure and weight. -->
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -32,12 +36,16 @@
 <header class="topbar">
   <div class="topbar-in">
 
-    <!-- Title lockup. One line, two weights: the host reads as the label,
-         the subject as the headline. The colon is the hinge between them. -->
+    <!-- Title lockup. One line, two faces: the host reads as the label in
+         sans, the subject as the headline in the invitation's serif. The
+         colon is the hinge between them. The chip is a crop of the orange
+         shard graphic from the invitation, standing in for a logo lockup. -->
     <p class="mark">
-      <span class="mark-rule" aria-hidden="true"></span>
+      <span class="mark-chip" aria-hidden="true"></span>
       <span class="mark-name">Elsevier roundtable<span class="mark-colon" aria-hidden="true">:</span></span>
-      <span class="mark-topic">The reality of AI in the lab</span>
+      <!-- The invitation sets "The reality of AI" roman and "in the lab"
+           italic, in Tiempos Text. Same split here, same serif role. -->
+      <span class="mark-topic">The reality of AI <em>in the lab</em></span>
       <span class="mark-dot" aria-hidden="true"></span>
       <span class="mark-date">9 September 2026</span>
     </p>
@@ -46,7 +54,6 @@
       <div class="switch" role="tablist" aria-label="How terms are grouped">
         <button class="switch-opt is-on" role="tab" aria-selected="true"  data-view="phrases">Phrases</button>
         <button class="switch-opt"       role="tab" aria-selected="false" data-view="words">Single words</button>
-        <button class="switch-opt"       role="tab" aria-selected="false" data-view="motion">Motion</button>
       </div>
 
       <!-- Dark mode. Both icons sit in the DOM and CSS reveals the one that
@@ -82,6 +89,38 @@
 <main class="stage">
 
   <figure class="plate-wrap">
+
+    <!-- ── When / Where / Who ────────────────────────────────────
+         The invitation's three facts, in the invitation's own order, on
+         the invitation's own cards, headed by the three icons lifted
+         straight out of it. It sits above the plate because that is where
+         the flyer puts it, and because anyone arriving on the link needs
+         to know what the cloud is for before they read it. It is outside
+         the element that goes full screen, so the projected cloud is
+         never carrying it. -->
+    <ul class="facts">
+      <li class="fact">
+        <span class="fact-icon"><img src="assets/icon-when.png" width="26" height="26" alt="" /></span>
+        <span class="fact-text">
+          <span class="fact-lbl">When</span>
+          <span class="fact-val">Wednesday 9 September 2026</span>
+        </span>
+      </li>
+      <li class="fact">
+        <span class="fact-icon"><img src="assets/icon-where.png" width="26" height="26" alt="" /></span>
+        <span class="fact-text">
+          <span class="fact-lbl">Where</span>
+          <span class="fact-val">Elsevier office, Amsterdam Sloterdijk</span>
+        </span>
+      </li>
+      <li class="fact">
+        <span class="fact-icon"><img src="assets/icon-who.png" width="26" height="26" alt="" /></span>
+        <span class="fact-text">
+          <span class="fact-lbl">Who</span>
+          <span class="fact-val">Senior R&amp;D digitization leaders</span>
+        </span>
+      </li>
+    </ul>
 
     <div class="plate" id="plate">
       <div class="plate-empty" id="plate-empty">
@@ -125,14 +164,19 @@
         Participant names, e-mail addresses and dietary requirements are fully excluded
         from this page and from its repository.
       </p>
+      <p class="cap-source cap-design">
+        Icons, colours, typography and the When / Where / Who details on this page are taken
+        from the official invitation,
+        <code>CS-2775_Flyer_Roundtable agenda_1_F.pdf</code> — the three icons are the flyer's
+        own artwork, extracted from that file. RSVP form:
+        <a href="https://forms.office.com/r/PS1rWkLcVF">https://forms.office.com/r/PS1rWkLcVF</a>
+      </p>
     </figcaption>
 
     <p class="note note-warn fit-note" id="fit-note" hidden></p>
-    <p class="note motion-note" id="motion-note" hidden></p>
 
     <div class="plate-actions">
       <button class="btn btn-quiet" id="add-open" aria-expanded="false" aria-controls="add-panel">Add a term</button>
-      <button class="btn btn-quiet" id="motion-pause" hidden aria-pressed="false">Pause</button>
       <button class="btn btn-solid" id="save-png" disabled>Save PNG</button>
     </div>
 
