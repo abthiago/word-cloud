@@ -4,19 +4,15 @@ window.WORDCLOUD_PRESETS = [
   "id": "roundtable-2026-09-09",
   "label": "Roundtable, 9 September 2026",
   "occasion": "the roundtable on 9 September 2026",
-  "responseCount": 6,
+  "responseCount": 5,
   "phrases": [
     {
       "text": "AI in Innovation",
-      "value": 3
+      "value": 2
     },
     {
       "text": "AI in Literature Search",
-      "value": 3
-    },
-    {
-      "text": "Elsevier AI Support",
-      "value": 3
+      "value": 2
     },
     {
       "text": "Data",
@@ -63,10 +59,6 @@ window.WORDCLOUD_PRESETS = [
       "value": 1
     },
     {
-      "text": "Easy Access",
-      "value": 1
-    },
-    {
       "text": "Knowledge Management",
       "value": 1
     },
@@ -91,7 +83,7 @@ window.WORDCLOUD_PRESETS = [
       "value": 1
     }
   ],
-  "sourceText": "Scaling up projects faster\nHow can Elsevier AI support us?\nEasy access?\nInnovation, Data, Digitalization, Automation, Analytics. R&D, Consumer Insights, Sustainability, Collaboration, Knowledge Management, Data Harmonization\ncommunication, reliability, cost efficient\nCapability building\nLarge Language Models; AI in Literature search and analysis; AI in innovation",
+  "sourceText": "Scaling up projects faster\nInnovation, Data, Digitalization, Automation, Analytics. R&D, Consumer Insights, Sustainability, Collaboration, Knowledge Management, Data Harmonization\ncommunication, reliability, cost efficient\nCapability building\nLarge Language Models; AI in Literature search and analysis; AI in innovation",
   "provenance": {
     "file": "Round table participants 24 08 2026.xlsx",
     "sheet": "Sheet1",

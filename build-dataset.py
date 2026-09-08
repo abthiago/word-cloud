@@ -26,12 +26,22 @@ SOURCE_XLSX = "Round table participants 24 08 2026.xlsx"
 OUTPUT_JS = Path("data/presets.js")
 KEYWORD_HEADER_PREFIX = "keywords"
 
+# Responses excluded from the word cloud altogether.
+# One respondent answered the keyword question with questions for the panel
+# ("How can Elsevier AI support us? / Easy access?") rather than with terms;
+# the same point is made in their answer to the challenge question ("How to
+# connect Elsevier AI with internal platforms / initiatives"), so it belongs in
+# the discussion, not in the cloud. Excluded here, before the corpus is scored,
+# so it does not influence any other phrase's weight either.
+EXCLUDED_RESPONSES = {
+    "how can elsevier ai support us?\neasy access?",
+}
+
 # Editorial rewrites, applied to the normalised phrase.
-# Two respondents answered in sentences rather than terms, and two phrases are
+# One respondent answered in a sentence rather than terms, and two phrases are
 # too long to read at display size. Every rewrite is listed here so the mapping
 # from raw response to rendered term stays auditable.
 REWRITES = {
-    "how can elsevier ai support us": "Elsevier AI Support",
     "ai in literature search and analysis": "AI in Literature Search",
     "scaling up projects faster": "Scaling Up Projects",
     "cost efficient": "Cost Efficiency",
@@ -76,9 +86,17 @@ def load_responses(path: Path) -> tuple[list[str], str, str, int]:
     responses = [
         str(r[col]).strip()
         for r in submissions
-        if r[col] is not None and str(r[col]).strip()
+        if r[col] is not None
+        and str(r[col]).strip()
+        and normalise_response(str(r[col])) not in EXCLUDED_RESPONSES
     ]
     return responses, ws.title, str(header[col]).strip(), len(submissions)
+
+
+def normalise_response(response: str) -> str:
+    """Lower-cased, whitespace-tidied form used to match EXCLUDED_RESPONSES."""
+    lines = [re.sub(r"[ \t]+", " ", ln.strip()) for ln in response.strip().splitlines()]
+    return "\n".join(ln for ln in lines if ln).lower()
 
 
 def split_phrases(response: str) -> list[str]:
