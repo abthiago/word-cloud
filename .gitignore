@@ -7,6 +7,14 @@
 *.xls
 *.csv
 
+# The invitation flyer is the source of this page's palette, type and icons,
+# and the extractor script needs it sitting here — but it is not published.
+# It is marked "closed-door and confidential", and its RSVP button is an
+# Outlook safelink with an Elsevier colleague's address baked into the query
+# string. The extracted artwork in assets/ is committed; the PDF is not.
+CS-2775_Flyer_Roundtable agenda_1_F.pdf
+*_Flyer_*.pdf
+
 # ── OS / editor noise ────────────────────────────────────────
 Thumbs.db
 desktop.ini
