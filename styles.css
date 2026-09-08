@@ -8,6 +8,10 @@
 
    Colour is information, not decoration — see --hi / --mid / --lo /
    --added, which map to how often a theme was raised.
+
+   Light and dark are the same design, not two designs: every colour
+   below is a custom property, and the [data-theme="dark"] block near
+   the end of this file re-points them. Nothing else changes.
 ══════════════════════════════════════════════════════════════ */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -17,6 +21,8 @@
 [hidden] { display: none !important; }
 
 :root {
+  color-scheme: light;
+
   /* Palette — Elsevier brand, six values, nothing spare */
   --ink:    #0C0F12;   /* primary text and mid-weight terms       */
   --paper:  #FFFFFF;   /* the plate                                */
@@ -31,6 +37,18 @@
   --quiet:  #7D7975;   /* long-tail terms and hints                */
   --orange-deep: #CC3402;
   --green:  #0C8930;
+
+  /* Second-order surfaces and edges. Named so the dark theme has one
+     place to re-point them instead of hunting hex codes. */
+  --rule-2:      #B9B4AE;              /* hairline on hover        */
+  --track:       rgba(12, 15, 18, 0.05); /* the switch's groove    */
+  --placeholder: #ADA8A2;
+  --link-deep:   #003FA3;
+  --dz-over:     #FFF6F2;
+  --code-bg:     rgba(0, 86, 214, 0.07);
+  --scrim:       rgba(12, 15, 18, 0.32);
+  --shadow-chip: 0 1px 2px rgba(12, 15, 18, 0.1);
+  --shadow-plate: 0 1px 1px rgba(12, 15, 18, 0.04), 0 14px 40px -20px rgba(12, 15, 18, 0.22);
 
   /* Term colours — read by app.js */
   --hi:    var(--orange);
@@ -146,7 +164,7 @@ body {
   display: inline-flex;
   padding: 2px;
   gap: 2px;
-  background: rgba(12, 15, 18, 0.05);
+  background: var(--track);
   border-radius: var(--r-pill);
 }
 
@@ -171,7 +189,7 @@ body {
   color: var(--ink);
   font-weight: 600;
   background: var(--paper);
-  box-shadow: 0 1px 2px rgba(12, 15, 18, 0.1);
+  box-shadow: var(--shadow-chip);
 }
 
 /* ── Icon button ──────────────────────────────────────────────── */
@@ -193,7 +211,7 @@ body {
   transition: color 0.15s, border-color 0.15s;
 }
 
-.icon-btn:hover { color: var(--ink); border-color: #B9B4AE; }
+.icon-btn:hover { color: var(--ink); border-color: var(--rule-2); }
 
 .icon-btn-bare {
   background: none;
@@ -202,6 +220,42 @@ body {
 }
 
 .icon-btn-bare:hover { border-color: var(--rule); }
+
+/* ── Dark mode toggle ─────────────────────────────────────────────
+   A square of the same height as its neighbours. Both icons are in
+   the DOM; the one that does not apply is scaled out and faded, so
+   the swap reads as a single object turning over. */
+.theme-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  appearance: none;
+  color: var(--ink-2);
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+
+.theme-btn:hover { color: var(--ink); border-color: var(--rule-2); }
+
+.theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  transition: opacity 0.22s ease, transform 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Light: offer the moon. Dark: offer the sun. The button shows what
+   you would get, not what you have — the same idiom as a play button. */
+.theme-icon-sun  { opacity: 0; transform: rotate(-70deg) scale(0.6); }
+.theme-icon-moon { opacity: 1; transform: rotate(0deg) scale(1); }
+
+[data-theme="dark"] .theme-icon-sun  { opacity: 1; transform: rotate(0deg) scale(1); }
+[data-theme="dark"] .theme-icon-moon { opacity: 0; transform: rotate(70deg) scale(0.6); }
 
 /* ══ STAGE + PLATE ═════════════════════════════════════════════ */
 .stage {
@@ -220,7 +274,7 @@ body {
   position: relative;
   background: var(--paper);
   border: 1px solid var(--rule);
-  box-shadow: 0 1px 1px rgba(12, 15, 18, 0.04), 0 14px 40px -20px rgba(12, 15, 18, 0.22);
+  box-shadow: var(--shadow-plate);
   min-height: 340px;
   display: flex;
   align-items: center;
@@ -233,8 +287,13 @@ body {
 #cloud svg { display: block; width: 100%; height: auto; }
 
 #cloud text { cursor: default; transition: opacity 0.15s; }
-#cloud:hover text { opacity: 0.3; }
-#cloud text:hover { opacity: 1; }
+#cloud:not(.is-motion):hover text { opacity: 0.3; }
+#cloud:not(.is-motion) text:hover { opacity: 1; }
+
+/* Motion view: app.js writes transform and opacity on every frame, so any
+   transition here would smear the animation instead of smoothing it. */
+#cloud.is-motion text { transition: none; }
+#cloud.is-motion { cursor: default; }
 
 /* Emptiness is an invitation, not a mood. */
 .plate-empty {
@@ -262,12 +321,6 @@ body {
 .caption {
   margin-top: 18px;
   max-width: 78ch;   /* under 80 characters */
-}
-
-.cap-lead {
-  font-size: var(--t-s);
-  color: var(--ink-2);
-  line-height: 1.6;
 }
 
 .legend {
@@ -313,7 +366,7 @@ body {
   text-underline-offset: 2px;
 }
 
-.cap-source a:hover { color: #003FA3; }
+.cap-source a:hover { color: var(--link-deep); }
 
 /* ══ ACTIONS UNDER THE PLATE ═══════════════════════════════════ */
 .plate-actions {
@@ -325,7 +378,14 @@ body {
 
 /* Targeted by id: app.js rewrites this element's class list when it sets
    the message, so a class-based rule here would be wiped. */
-#fit-note { margin-top: 14px; max-width: 78ch; }
+#fit-note, #motion-note { margin-top: 14px; max-width: 78ch; }
+
+/* The motion notice is information, not a warning — keep it neutral. */
+#motion-note {
+  border-left-color: var(--rule-2);
+  background: var(--track);
+  color: var(--ink-2);
+}
 
 .btn {
   appearance: none;
@@ -360,7 +420,7 @@ body {
   border-color: var(--rule);
 }
 
-.btn-quiet:hover:not(:disabled) { color: var(--ink); border-color: #B9B4AE; }
+.btn-quiet:hover:not(:disabled) { color: var(--ink); border-color: var(--rule-2); }
 
 .btn-s { font-size: var(--t-xs); padding: 6px 13px; }
 
@@ -418,7 +478,7 @@ body {
   font-weight: 600;
   font-size: var(--t-xs);
   color: var(--blue);
-  background: rgba(0, 86, 214, 0.07);
+  background: var(--code-bg);
   border-radius: 3px;
   padding: 1px 5px;
 }
@@ -449,8 +509,8 @@ body {
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.field::placeholder { color: #ADA8A2; }
-.field:hover { border-color: #B9B4AE; }
+.field::placeholder { color: var(--placeholder); }
+.field:hover { border-color: var(--rule-2); }
 
 .field:focus {
   outline: none;
@@ -478,7 +538,7 @@ body {
 .scrim {
   position: fixed;
   inset: 0;
-  background: rgba(12, 15, 18, 0.32);
+  background: var(--scrim);
   z-index: 40;
   animation: fade 0.16s ease-out;
 }
@@ -566,7 +626,7 @@ body {
   border-style: solid;
 }
 
-.dropzone.is-over { background: #FFF6F2; }
+.dropzone.is-over { background: var(--dz-over); }
 
 .dz-line { font-size: var(--t-s); color: var(--ink-2); }
 .dz-line strong { color: var(--ink); font-weight: 600; }
@@ -615,7 +675,9 @@ body {
   .mark { flex-direction: column; gap: 2px; }
   .mark-rule { transform: none; }
   .switch { flex: 1; }
-  .switch-opt { flex: 1; padding: 6px 8px; }
+  /* Three tabs on a narrow phone: let the labels shrink rather than
+     pushing the theme button off the bar. */
+  .switch-opt { flex: 1; padding: 6px 6px; font-size: var(--t-xs); white-space: normal; }
   .plate-actions { flex-direction: column; align-items: stretch; }
   .add-row { flex-direction: column; align-items: stretch; }
   .add-row .linky { margin-left: 0; padding-top: 4px; }
@@ -623,8 +685,80 @@ body {
 
 /* ══ PRINT — the plate and its caption, nothing else ═══════════ */
 @media print {
-  .topbar, .plate-actions, .add-panel, .drawer, .scrim { display: none !important; }
+  .topbar, .plate-actions, .add-panel, .drawer, .scrim,
+  #motion-note { display: none !important; }
   html { background: #fff; }
   .stage { padding: 0; }
   .plate { border-color: #bbb; box-shadow: none; }
+}
+
+
+/* ══ DARK MODE ═════════════════════════════════════════════════
+   Set as data-theme="dark" on <html> by the inline script in
+   index.html and by app.js when the toggle is used. Only colour
+   moves: no layout, type or spacing differs between the themes.
+
+   The term colours are re-pointed here for the legend swatches and
+   read separately by app.js (see PALETTE) for the cloud itself, so
+   the two must be kept in step.
+══════════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --ink:    #F1F0EE;
+  --paper:  #14181C;   /* the plate                                */
+  --field:  #0B0E11;   /* the ground it sits on                    */
+  --rule:   #262C33;
+  --orange: #FF5A22;   /* lifted: #FF4203 on near-black is muddy   */
+  --blue:   #61A0FF;   /* lifted to clear 4.5:1 on the plate       */
+
+  --ink-2:  #A7AEB6;
+  --ink-3:  #6C757E80;
+  --quiet:  #868E96;
+  --orange-deep: #FF7A4D;
+  --green:  #3FBF6B;
+
+  --rule-2:      #3B434B;
+  --track:       rgba(255, 255, 255, 0.06);
+  --placeholder: #6C757E;
+  --link-deep:   #9CC0FF;
+  --dz-over:     #1A2430;
+  --code-bg:     rgba(97, 160, 255, 0.12);
+  --scrim:       rgba(0, 0, 0, 0.58);
+  --shadow-chip: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-plate: 0 1px 1px rgba(0, 0, 0, 0.4), 0 18px 46px -22px rgba(0, 0, 0, 0.8);
+}
+
+[data-theme="dark"] ::selection { background: rgba(255, 90, 34, 0.28); }
+
+/* The chevron is a baked data URI, so it needs its own dark copy. */
+[data-theme="dark"] .field-select {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7' fill='none'%3E%3Cpath d='M1 1l4.5 4.5L10 1' stroke='%23868E96' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* Notes carry their own hues rather than palette variables, because the
+   semantics (ok / warn / bad) should not drift with the theme. */
+[data-theme="dark"] .note {
+  background: rgba(63, 191, 107, 0.12);
+  color: #7EDCA0;
+}
+
+[data-theme="dark"] .note-warn {
+  background: rgba(255, 90, 34, 0.13);
+  color: #FF9E7A;
+}
+
+[data-theme="dark"] .note-bad {
+  background: rgba(255, 92, 92, 0.12);
+  border-left-color: #FF5C5C;
+  color: #FF9C9C;
+}
+
+/* Print always goes to paper, which is white whatever the screen is. */
+@media print {
+  [data-theme="dark"] {
+    --ink: #0C0F12; --paper: #FFFFFF; --field: #FFFFFF;
+    --rule: #D6D2CD; --ink-2: #55595E; --quiet: #7D7975;
+    --orange: #FF4203; --blue: #0056D6;
+  }
 }

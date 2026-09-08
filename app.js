@@ -10,16 +10,25 @@
      ink     raised more than once
      grey    raised once
      blue    added by hand, so not from the survey
+
+   Three views of the same terms: 'phrases', 'words' and 'motion'.
+   Motion reuses the phrases layout and animates it; see MOTION.
 ══════════════════════════════════════════════════════════════ */
 
 'use strict';
 
-const TERM_COLOR = {
-  hi:    '#FF4203',
-  mid:   '#0C0F12',
-  lo:    '#7D7975',
-  added: '#0056D6',
+/* One set of term colours per theme, plus the plate behind them.
+   Keep these in step with --hi / --mid / --lo / --added in styles.css,
+   which colour the legend swatches beside the cloud.
+
+   PALETTE.light is also what a PNG export uses whatever the screen is
+   set to, so an exported cloud always drops onto a white slide. */
+const PALETTE = {
+  light: { hi: '#FF4203', mid: '#0C0F12', lo: '#7D7975', added: '#0056D6', paper: '#FFFFFF' },
+  dark:  { hi: '#FF5A22', mid: '#F1F0EE', lo: '#868E96', added: '#61A0FF', paper: '#14181C' },
 };
+
+const THEME_KEY = 'roundtable.theme.v1';
 
 const CLOUD_FONT   = "'IBM Plex Sans Condensed', 'IBM Plex Sans', Arial, sans-serif";
 const CLOUD_WEIGHT = 600;
@@ -65,11 +74,13 @@ const $ = (id) => document.getElementById(id);
 const plate       = $('plate');
 const plateEmpty  = $('plate-empty');
 const cloud       = $('cloud');
-const capLead     = $('cap-lead');
 const capSource   = $('cap-source');
 const legendAdded = $('legend-added');
 const savePngBtn  = $('save-png');
 const fitNote     = $('fit-note');
+const motionNote  = $('motion-note');
+const motionPause = $('motion-pause');
+const themeToggle = $('theme-toggle');
 
 const switchOpts  = Array.from(document.querySelectorAll('.switch-opt'));
 
@@ -108,6 +119,52 @@ let presetId = null;
 const PRESETS = Array.isArray(window.WORDCLOUD_PRESETS) ? window.WORDCLOUD_PRESETS : [];
 
 const activePreset = () => PRESETS.find(p => p.id === presetId) || null;
+
+/* ══════════════════════════════════════════════════════════════
+   THEME
+   The inline script in index.html has already put data-theme on
+   <html> before first paint, so all this does is read it, flip it,
+   and recolour the cloud that is already drawn — no relayout, which
+   is what keeps the switch instant.
+══════════════════════════════════════════════════════════════ */
+
+const prefersDark = window.matchMedia
+  ? window.matchMedia('(prefers-color-scheme: dark)')
+  : null;
+
+const theme = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+
+const termColors = () => PALETTE[theme()];
+
+function paintThemeToggle() {
+  const dark = theme() === 'dark';
+  themeToggle.setAttribute('aria-pressed', String(dark));
+  // The button offers the other theme, so its label names that one.
+  themeToggle.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+  themeToggle.title = dark ? 'Light mode' : 'Dark mode';
+}
+
+/** Recolours the drawn SVG in place. Each term carries data-tone, so the
+    new colour is a lookup rather than a recomputation from the values. */
+function recolorCloud() {
+  const svg = cloud.querySelector('svg');
+  if (!svg) return;
+  const c = termColors();
+  const bg = svg.querySelector('.cloud-bg');
+  if (bg) bg.setAttribute('fill', c.paper);
+  for (const t of svg.querySelectorAll('text')) {
+    t.setAttribute('fill', c[t.dataset.tone] || c.mid);
+  }
+}
+
+function setTheme(next, { remember = true } = {}) {
+  document.documentElement.setAttribute('data-theme', next === 'dark' ? 'dark' : 'light');
+  if (remember) {
+    try { localStorage.setItem(THEME_KEY, next); } catch { /* private mode */ }
+  }
+  paintThemeToggle();
+  recolorCloud();
+}
 
 /* ══════════════════════════════════════════════════════════════
    TERMS ADDED BY HAND
@@ -201,7 +258,8 @@ function buildTerms() {
   const preset = activePreset();
   const added  = addedTerms().map(t => ({ ...t, added: true }));
 
-  if (viewMode === 'phrases') {
+  // Motion animates the phrases layout, so it shares that term list.
+  if (viewMode !== 'words') {
     const base = preset
       ? preset.phrases.map(p => ({ ...p, added: false }))
       : countPhrases(textInput.value.trim()).map(p => ({ ...p, added: false }));
@@ -239,14 +297,20 @@ function fitWidth(size, text, width, floor) {
   return Math.max(floor, Math.min(size, Math.floor((width * 0.94) / (RATIO * Math.max(text.length, 1)))));
 }
 
-function termColor(term, hi, lo) {
-  if (term.added) return TERM_COLOR.added;
-  if (hi === lo) return TERM_COLOR.mid;
-  if (term.value === hi) return TERM_COLOR.hi;
-  return term.value > lo ? TERM_COLOR.mid : TERM_COLOR.lo;
+/**
+ * Which band a term falls in — 'hi', 'mid', 'lo' or 'added'. The band is
+ * what gets stored on the element; the hex is looked up from the band, so
+ * switching theme or exporting a PNG only changes the lookup table.
+ */
+function termTone(term, hi, lo) {
+  if (term.added) return 'added';
+  if (hi === lo) return 'mid';
+  if (term.value === hi) return 'hi';
+  return term.value > lo ? 'mid' : 'lo';
 }
 
 function render(terms) {
+  stopMotion();
   if (layout) { layout.stop(); layout = null; }
 
   const width  = plate.clientWidth || 1100;
@@ -263,7 +327,7 @@ function render(terms) {
     value: t.value,
     added: !!t.added,
     size:  Math.max(floor, Math.round(fitWidth(scale(t.value), t.text, width, floor) * shrink)),
-    color: termColor(t, hi, lo),
+    tone:  termTone(t, hi, lo),
   }));
 
   /* d3-cloud drops any term it cannot place, and whether a term fits depends
@@ -300,6 +364,7 @@ function render(terms) {
 
   function draw(placed) {
     cloud.innerHTML = '';
+    const c = termColors();
 
     const svg = d3.select(cloud).append('svg')
       .attr('xmlns', 'http://www.w3.org/2000/svg')
@@ -307,9 +372,13 @@ function render(terms) {
       .attr('width', width)
       .attr('height', height);
 
-    svg.append('rect').attr('width', width).attr('height', height).attr('fill', '#FFFFFF');
+    svg.append('rect')
+      .attr('class', 'cloud-bg')
+      .attr('width', width).attr('height', height)
+      .attr('fill', c.paper);
 
     svg.append('g')
+        .attr('class', 'cloud-stage')
         .attr('transform', `translate(${width / 2},${height / 2})`)
       .selectAll('text')
       .data(placed)
@@ -319,7 +388,13 @@ function render(terms) {
         .attr('font-family', CLOUD_FONT)
         .attr('font-weight', CLOUD_WEIGHT)
         .attr('font-size', d => `${d.size}px`)
-        .attr('fill', d => d.color)
+        .attr('fill', d => c[d.tone] || c.mid)
+        .attr('data-tone', d => d.tone)
+        /* Resting position and size, kept so the motion loop can offset from
+           them and the PNG export can put every term back where it belongs. */
+        .attr('data-bx', d => d.x)
+        .attr('data-by', d => d.y)
+        .attr('data-bs', d => d.size)
         .attr('transform', d => `translate(${d.x},${d.y})`)
         .text(d => d.text)
       .append('title')
@@ -340,6 +415,204 @@ function render(terms) {
     } else {
       hide(fitNote);
     }
+
+    if (viewMode === 'motion') startMotion(width, height);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MOTION VIEW
+
+   The same d3-cloud layout as the phrases view, then animated — so
+   nothing overlaps and nothing is dropped, which is what goes wrong
+   when a moving cloud places its terms on the fly.
+
+   Three movements, all reading off one clock:
+
+     entrance   each term fades and grows into place, staggered, so
+                the room watches the cloud assemble rather than
+                arriving at a wall of type
+     drift      a slow per-term sine wander. Amplitude is inverse to
+                type size: the big terms sit heavy and the small ones
+                float, which is what stops it looking like a jelly
+     spotlight  attention travels through the terms largest-first,
+                lifting one and settling the rest. Size and colour
+                never change — colour is the frequency encoding, so
+                borrowing it for emphasis would say something untrue
+
+   Colour is therefore left alone entirely, and the loop is seamless:
+   there is no cut, so it reads like a GIF without being one.
+══════════════════════════════════════════════════════════════ */
+
+const MOTION = {
+  IN_MS:   540,    // entrance of a single term
+  IN_STEP: 42,     // stagger between consecutive terms
+  DWELL:   2.1,    // seconds each term holds the spotlight
+  LIFT:    1.09,   // how much the spotlight term grows
+  DIM:     0.34,   // how far the rest settle back (0 = unchanged)
+  W_X:     0.34,   // drift angular speed, radians/second
+  W_Y:     0.27,
+  W_BREATHE: 0.16, // the whole plate's slow in-and-out
+  BREATHE_AMP: 0.008,
+};
+
+const reducedMotion = window.matchMedia
+  ? window.matchMedia('(prefers-reduced-motion: reduce)')
+  : { matches: false };
+
+/* { nodes, order, stage, cx, cy, entranceMs, raf, elapsed, mark, last,
+     userPaused } or null.
+
+   The clock is the requestAnimationFrame timestamp and nothing else:
+   `mark` is the timestamp the current run started at, `last` the most
+   recent one seen, and `elapsed` the milliseconds banked by earlier
+   runs. Reading a second clock (performance.now) to bank a pause looks
+   equivalent but is not guaranteed to be the same timeline, and when it
+   is not, the animation sits at frame zero for ever. */
+let motion = null;
+
+const easeOutCubic = (x) => 1 - Math.pow(1 - x, 3);
+
+function stopMotion() {
+  if (motion && motion.raf) cancelAnimationFrame(motion.raf);
+  motion = null;
+  cloud.classList.remove('is-motion');
+  motionPause.hidden = true;
+  motionPause.setAttribute('aria-pressed', 'false');
+  motionPause.textContent = 'Pause';
+  hide(motionNote);
+}
+
+function startMotion(width, height) {
+  const svg = cloud.querySelector('svg');
+  const stage = svg && svg.querySelector('.cloud-stage');
+  if (!stage) return;
+
+  if (reducedMotion.matches) {
+    // The system asks for no movement, so honour it and say so rather
+    // than showing an identical-looking view with no explanation.
+    say(motionNote,
+      'Your system is set to reduce motion, so the cloud is held still. ' +
+      'Turn that setting off to see it move.', 'info');
+    return;
+  }
+
+  const texts = Array.from(stage.querySelectorAll('text'));
+  if (!texts.length) return;
+
+  cloud.classList.add('is-motion');
+
+  const sizes = texts.map(t => Number(t.dataset.bs) || 20);
+  const hiSize = Math.max(...sizes);
+  const loSize = Math.min(...sizes);
+  const span   = Math.max(1, hiSize - loSize);
+
+  const nodes = texts.map((el, i) => {
+    const bs = sizes[i];
+    const heft = (bs - loSize) / span;      // 1 = biggest term
+    return {
+      el,
+      bx: Number(el.dataset.bx) || 0,
+      by: Number(el.dataset.by) || 0,
+      bs,
+      amp: 3 + 9 * (1 - heft),              // small terms roam further
+      /* Phases from the index rather than Math.random, so a reload
+         looks the same and a screenshot is reproducible. */
+      px: i * 1.7,
+      py: i * 2.9 + 0.6,
+    };
+  });
+
+  // Attention travels largest-first: the loudest themes lead.
+  const order = nodes
+    .map((n, i) => i)
+    .sort((a, b) => nodes[b].bs - nodes[a].bs);
+
+  motion = {
+    nodes, order, stage,
+    cx: width / 2, cy: height / 2,
+    entranceMs: MOTION.IN_MS + MOTION.IN_STEP * nodes.length,
+    raf: 0, elapsed: 0, mark: null, last: 0, userPaused: false,
+  };
+
+  motionPause.hidden = false;
+  runMotion();
+}
+
+/** Starts or resumes the clock. Time already run is kept in `elapsed`. */
+function runMotion() {
+  if (!motion || motion.raf || motion.userPaused || document.hidden) return;
+  motion.mark = null;   // the first frame becomes this run's origin
+  motion.raf = requestAnimationFrame(tick);
+}
+
+/** Freezes the clock without discarding the animation. */
+function freezeMotion() {
+  if (!motion || !motion.raf) return;
+  cancelAnimationFrame(motion.raf);
+  if (motion.mark !== null) motion.elapsed += motion.last - motion.mark;
+  motion.raf = 0;
+  motion.mark = null;
+}
+
+function tick(now) {
+  const m = motion;
+  if (!m) return;
+
+  if (m.mark === null) m.mark = now;
+  m.last = now;
+
+  const ms = m.elapsed + (now - m.mark);
+  const t  = ms / 1000;
+
+  // Spotlight only begins once the cloud has finished assembling.
+  const spotT = Math.max(0, (ms - m.entranceMs) / 1000);
+  const slot  = Math.floor(spotT / MOTION.DWELL) % m.order.length;
+  const phase = (spotT / MOTION.DWELL) % 1;
+  const bell  = spotT > 0 ? Math.sin(Math.PI * phase) : 0;  // 0 → 1 → 0, no cut
+  const lead  = m.order[slot];
+
+  for (let i = 0; i < m.nodes.length; i++) {
+    const n = m.nodes[i];
+
+    const enter = Math.min(1, Math.max(0, (ms - i * MOTION.IN_STEP) / MOTION.IN_MS));
+    const e     = easeOutCubic(enter);
+
+    const isLead = i === lead;
+    const scale  = (0.72 + 0.28 * e) * (isLead ? 1 + (MOTION.LIFT - 1) * bell : 1);
+    const opacity = e * (isLead ? 1 : 1 - MOTION.DIM * bell);
+
+    // Drift fades in with the entrance, so terms do not slide while landing.
+    const dx = n.amp * e * Math.sin(t * MOTION.W_X + n.px);
+    const dy = n.amp * 0.7 * e * Math.cos(t * MOTION.W_Y + n.py);
+
+    /* Scaling happens about the baseline, so a growing term would creep
+       upward. Nudging it down by the same amount pins its optical centre. */
+    const anchor = 0.33 * n.bs * (scale - 1);
+
+    n.el.setAttribute('transform',
+      `translate(${(n.bx + dx).toFixed(2)},${(n.by + dy + anchor).toFixed(2)}) scale(${scale.toFixed(4)})`);
+    n.el.setAttribute('opacity', opacity.toFixed(3));
+  }
+
+  const breathe = 1 + MOTION.BREATHE_AMP * Math.sin(t * MOTION.W_BREATHE);
+  m.stage.setAttribute('transform', `translate(${m.cx},${m.cy}) scale(${breathe.toFixed(4)})`);
+
+  m.raf = requestAnimationFrame(tick);
+}
+
+function toggleMotionPause() {
+  if (!motion) return;
+  motion.userPaused = !motion.userPaused;
+
+  if (motion.userPaused) {
+    freezeMotion();
+    motionPause.textContent = 'Play';
+    motionPause.setAttribute('aria-pressed', 'true');
+  } else {
+    motionPause.textContent = 'Pause';
+    motionPause.setAttribute('aria-pressed', 'false');
+    runMotion();
   }
 }
 
@@ -348,6 +621,7 @@ function refresh({ announce = false } = {}) {
   const terms = buildTerms();
 
   if (!terms.length) {
+    stopMotion();
     cloud.innerHTML = '';
     cloud.style.display = 'none';
     plateEmpty.style.display = 'block';
@@ -358,18 +632,18 @@ function refresh({ announce = false } = {}) {
         ? 'There is nothing to draw yet. Paste some text, drop in a file, or add a term by hand.'
         : 'Every word was filtered out. Remove some entries from "Words to ignore", or add more text.', 'bad');
     }
-    updateCaption(0);
+    updateCaption();
     return;
   }
 
   hide(problem);
   render(terms);
-  updateCaption(terms.length);
+  updateCaption();
 }
 
 /* ══ CAPTION ═══════════════════════════════════════════════════ */
 
-function updateCaption(termCount) {
+function updateCaption() {
   const preset = activePreset();
   const added  = addedTerms();
 
@@ -377,29 +651,11 @@ function updateCaption(termCount) {
 
   if (preset) {
     const pv = preset.provenance || {};
-    const submitted = pv.submissionCount || preset.responseCount;
-    const grouping = viewMode === 'phrases'
-      ? 'Each answer is kept as the participant phrased it'
-      : 'Answers are broken into single words';
-
-    capLead.textContent =
-      `${preset.responseCount} of the ${submitted} people who filled in the registration form ` +
-      `gave keywords ahead of ${preset.occasion || 'the roundtable'}. ` +
-      `${grouping}, and a term is drawn larger the more often its theme came up.` +
-      (added.length
-        ? ` ${added.length} further term${added.length !== 1 ? 's were' : ' was'} added by hand.`
-        : '');
-
     capSource.textContent =
       `Source: Microsoft Forms export "${pv.file}", sheet ${pv.sheet}, column ` +
       `"${(pv.column || '').replace(/\s+/g, ' ').replace(/[�]/g, '—').trim()}". ` +
       `Extracted ${pv.generated} by build-dataset.py in this repository.`;
   } else {
-    capLead.textContent = termCount
-      ? `${termCount} term${termCount !== 1 ? 's' : ''} from the text you supplied. ` +
-        'A term is drawn larger the more often it appears.'
-      : 'Nothing to show yet.';
-
     const name = fileName.textContent.trim();
     capSource.textContent = name
       ? `Source: the file "${name}", read in this browser and not uploaded anywhere.`
@@ -452,8 +708,10 @@ function paintSwitch() {
   }
 }
 
+const VIEWS = ['phrases', 'words', 'motion'];
+
 function setView(mode, { redraw = true } = {}) {
-  if (mode !== 'phrases' && mode !== 'words') return;
+  if (!VIEWS.includes(mode)) return;
   if (mode === viewMode && redraw) return;
   viewMode = mode;
   paintSwitch();
@@ -520,6 +778,35 @@ function handleStartOver() {
   refresh();
 }
 
+/**
+ * The export copy: light palette, white plate, every term back at its
+ * resting position at full opacity. So a PNG is the same picture whether
+ * it was taken in dark mode or mid-animation, and it drops straight onto
+ * a white Elsevier slide.
+ */
+function exportSvg(svg) {
+  const copy = svg.cloneNode(true);
+  const c = PALETTE.light;
+
+  const bg = copy.querySelector('.cloud-bg');
+  if (bg) bg.setAttribute('fill', c.paper);
+
+  const stage = copy.querySelector('.cloud-stage');
+  if (stage) {
+    const w = parseInt(copy.getAttribute('width'), 10) || 1100;
+    const h = parseInt(copy.getAttribute('height'), 10) || 560;
+    stage.setAttribute('transform', `translate(${w / 2},${h / 2})`);
+  }
+
+  for (const t of copy.querySelectorAll('text')) {
+    t.setAttribute('fill', c[t.dataset.tone] || c.mid);
+    t.setAttribute('opacity', '1');
+    t.setAttribute('transform', `translate(${t.dataset.bx || 0},${t.dataset.by || 0})`);
+  }
+
+  return copy;
+}
+
 function handleSavePng() {
   const svg = cloud.querySelector('svg');
   if (!svg) return;
@@ -537,7 +824,7 @@ function handleSavePng() {
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, w, h);
 
-  const blob = new Blob([new XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml;charset=utf-8' });
+  const blob = new Blob([new XMLSerializer().serializeToString(exportSvg(svg))], { type: 'image/svg+xml;charset=utf-8' });
   const url  = URL.createObjectURL(blob);
   const img  = new Image();
   const name = `${presetId || 'wordcloud'}-${viewMode}`;
@@ -635,6 +922,9 @@ function handleAddReset() {
 
 /* ══ SMALL HELPERS ═════════════════════════════════════════════ */
 
+/* kind: 'bad' | 'warn' | 'info' | anything else for the ok tone.
+   Note that this rewrites the class list, so per-element styling in
+   styles.css has to be hung off the id. */
 function say(el, msg, kind) {
   el.textContent = msg;
   el.className = 'note' + (kind === 'bad' ? ' note-bad' : kind === 'warn' ? ' note-warn' : '');
@@ -652,6 +942,37 @@ function busy(state) {
 /* ══ WIRING ════════════════════════════════════════════════════ */
 
 for (const b of switchOpts) b.addEventListener('click', () => setView(b.dataset.view));
+
+themeToggle.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light' : 'dark'));
+
+motionPause.addEventListener('click', toggleMotionPause);
+
+/* A hidden tab still runs requestAnimationFrame in some browsers and
+   throttles it in others; freezing is both cheaper and less jarring than
+   coming back to a cloud that jumped. */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) freezeMotion(); else runMotion();
+});
+
+/* No stored choice means the page is following the system, so keep
+   following it if the system changes while the page is open. */
+if (prefersDark && prefersDark.addEventListener) {
+  prefersDark.addEventListener('change', e => {
+    let saved = null;
+    try { saved = localStorage.getItem(THEME_KEY); } catch { /* private mode */ }
+    if (saved !== 'dark' && saved !== 'light') {
+      setTheme(e.matches ? 'dark' : 'light', { remember: false });
+    }
+  });
+}
+
+/* Someone turning "reduce motion" on or off while the page is open should
+   see the motion view honour it without a reload. */
+if (reducedMotion.addEventListener) {
+  reducedMotion.addEventListener('change', () => {
+    if (viewMode === 'motion') refresh();
+  });
+}
 
 drawerOpen.addEventListener('click', openDrawer);
 drawerClose.addEventListener('click', closeDrawer);
@@ -721,11 +1042,12 @@ window.addEventListener('resize', () => {
 /* ══ START ═════════════════════════════════════════════════════ */
 
 stopwords.value = DEFAULT_STOPWORDS.join(', ');
+paintThemeToggle();
 initPresets();
 
-// ?view=words opens straight on the single-words cut.
+// ?view=words or ?view=motion opens straight on that cut.
 const wanted = new URLSearchParams(location.search).get('view');
-if (wanted === 'words' || wanted === 'phrases') {
+if (VIEWS.includes(wanted)) {
   viewMode = wanted;
   paintSwitch();
 }

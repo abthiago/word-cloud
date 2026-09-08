@@ -6,6 +6,21 @@
 <title>What this room came to talk about — Elsevier roundtable, 9 September 2026</title>
 <meta name="description" content="Keywords submitted by participants ahead of the Elsevier roundtable on 9 September 2026." />
 
+<!-- Theme is resolved before the first paint, so a dark-mode visitor never
+     sees a white flash. Kept inline and tiny for that reason. -->
+<script>
+  (function () {
+    var t = 'light';
+    try {
+      var saved = localStorage.getItem('roundtable.theme.v1');
+      t = (saved === 'dark' || saved === 'light')
+        ? saved
+        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    } catch (e) { /* private mode — fall back to light */ }
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Sans+Condensed:wght@600;700&display=swap" rel="stylesheet" />
@@ -25,15 +40,34 @@
 
     <div class="topbar-tools">
       <div class="switch" role="tablist" aria-label="How terms are grouped">
-        <button class="switch-opt is-on" role="tab" aria-selected="true" data-view="phrases">Phrases</button>
+        <button class="switch-opt is-on" role="tab" aria-selected="true"  data-view="phrases">Phrases</button>
         <button class="switch-opt"       role="tab" aria-selected="false" data-view="words">Single words</button>
+        <button class="switch-opt"       role="tab" aria-selected="false" data-view="motion">Motion</button>
       </div>
+
+      <!-- Dark mode. Both icons sit in the DOM and CSS reveals the one that
+           applies, so the swap costs nothing at runtime. -->
+      <button class="theme-btn" id="theme-toggle" aria-pressed="false" aria-label="Switch to dark mode" title="Dark mode">
+        <span class="theme-icon theme-icon-sun" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="3.1" stroke="currentColor" stroke-width="1.4"/>
+            <path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.13 1.13M11.67 11.67l1.13 1.13M12.8 3.2l-1.13 1.13M4.33 11.67L3.2 12.8"
+                  stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="theme-icon theme-icon-moon" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M13.4 9.9A5.9 5.9 0 016.1 2.6a5.9 5.9 0 107.3 7.3z"
+                  stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          </svg>
+        </span>
+      </button>
 
       <button class="icon-btn" id="drawer-open" aria-expanded="false" aria-controls="drawer">
         <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
           <path d="M2 4h11M2 7.5h11M2 11h11" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
         </svg>
-        Build your own
+        Build
       </button>
     </div>
 
@@ -48,17 +82,13 @@
     <div class="plate" id="plate">
       <div class="plate-empty" id="plate-empty">
         <p class="plate-empty-line">No terms yet.</p>
-        <p class="plate-empty-help">Open <strong>Build your own</strong> to paste text, drop in a file, or type terms by hand.</p>
+        <p class="plate-empty-help">Open <strong>Build</strong> to paste text, drop in a file, or type terms by hand.</p>
       </div>
       <div id="cloud"></div>
     </div>
 
     <!-- Figure caption: doubles as the legend and the source citation -->
     <figcaption class="caption">
-      <p class="cap-lead" id="cap-lead">
-        Keywords submitted ahead of the roundtable.
-      </p>
-
       <ul class="legend" id="legend">
         <li><span class="key key-hi" aria-hidden="true"></span>Raised most often</li>
         <li><span class="key key-mid" aria-hidden="true"></span>Raised more than once</li>
@@ -75,9 +105,11 @@
     </figcaption>
 
     <p class="note note-warn fit-note" id="fit-note" hidden></p>
+    <p class="note motion-note" id="motion-note" hidden></p>
 
     <div class="plate-actions">
       <button class="btn btn-quiet" id="add-open" aria-expanded="false" aria-controls="add-panel">Add a term</button>
+      <button class="btn btn-quiet" id="motion-pause" hidden aria-pressed="false">Pause</button>
       <button class="btn btn-solid" id="save-png" disabled>Save PNG</button>
     </div>
 
@@ -108,9 +140,9 @@
 <!-- ══ DRAWER — everything secondary lives here ══════════════════ -->
 <div class="scrim" id="scrim" hidden></div>
 
-<aside class="drawer" id="drawer" hidden aria-label="Build your own word cloud">
+<aside class="drawer" id="drawer" hidden aria-label="Build a word cloud">
   <div class="drawer-head">
-    <h2 class="drawer-title">Build your own</h2>
+    <h2 class="drawer-title">Build</h2>
     <button class="icon-btn icon-btn-bare" id="drawer-close" aria-label="Close">
       <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
         <path d="M4 4l7 7M11 4l-7 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>

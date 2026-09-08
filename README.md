@@ -6,14 +6,72 @@ no server, no build step, no account, nothing to pay for.
 
 **Live page:** https://abthiago.github.io/word-cloud/
 
-Two views of the same answers, switchable in the top right:
+Three views of the same answers, switchable in the top right:
 
 | View | What it shows | Direct link |
 | --- | --- | --- |
 | Phrases | Each answer kept as the participant phrased it, so `Knowledge Management` stays one term | [`?view=phrases`](https://abthiago.github.io/word-cloud/?view=phrases) |
 | Single words | Answers broken into individual words, stop words removed | [`?view=words`](https://abthiago.github.io/word-cloud/?view=words) |
+| Motion | The phrases view, animated — for playing on screen while the room fills up | [`?view=motion`](https://abthiago.github.io/word-cloud/?view=motion) |
 
-`Save PNG` exports the cloud at 2× for a slide or a print.
+`Save PNG` exports the cloud at 2× for a slide or a print. It always exports
+on white in the light-mode colours and with every term at its resting
+position, so the file is the same picture whether you took it in dark mode or
+part-way through the animation.
+
+## The Motion view
+
+Motion reuses the phrases layout and animates it, rather than placing terms on
+the fly — so nothing overlaps and no term is dropped, which is the usual
+failure of an animated word cloud. Three things move at once:
+
+- **Entrance** — terms fade and grow into place, staggered, so the room watches
+  the cloud assemble instead of arriving at a wall of type.
+- **Drift** — a slow per-term wander. Small terms roam further than large ones,
+  which is what stops the whole plate looking like jelly.
+- **Spotlight** — attention travels through the terms, largest first, lifting
+  one and settling the rest. It loops seamlessly, so it reads like a GIF
+  without being one.
+
+Colour never changes during the animation. Colour is the frequency encoding
+here, so borrowing it for emphasis would say something untrue about the data.
+
+A **Pause** button appears under the plate whenever Motion is running. If your
+system is set to *reduce motion*, the cloud is held still and says so — the
+constants that drive the animation are in the `MOTION` block at the top of the
+motion section in [`app.js`](app.js) if you want it faster or calmer.
+
+## Dark mode
+
+The button between the view switch and **Build** in the top right toggles dark
+mode. On a first visit the page follows your operating system, and it keeps
+following it if you change that setting while the page is open; once you use
+the button, your choice is remembered in this browser and the system setting is
+ignored.
+
+Both themes are one design, not two. Every colour in
+[`styles.css`](styles.css) is a custom property, and the `[data-theme="dark"]`
+block at the end of that file re-points them — no layout, type or spacing
+differs. The term colours are re-pointed twice, once there for the legend
+swatches and once in `PALETTE` in [`app.js`](app.js) for the cloud itself, so
+those two have to be kept in step. Exported PNGs are unaffected: they are
+always light on white.
+
+## Where the Build panel lives
+
+**Build** is the button at the top right of the page, next to the dark-mode
+toggle. It opens the panel that holds the source picker, the paste-your-own-text
+box, the file dropzone and the stop-word list. Nothing else opens it, and there
+is no URL for it.
+
+In the code:
+
+| Thing | Where |
+| --- | --- |
+| The button | `<button class="icon-btn" id="drawer-open">` in [`index.html`](index.html), inside `.topbar-tools` |
+| The panel it opens | `<aside class="drawer" id="drawer">` in [`index.html`](index.html), just before the scripts |
+| Open / close behaviour | `openDrawer()` and `closeDrawer()` in [`app.js`](app.js) |
+| Styling | the `DRAWER` section of [`styles.css`](styles.css) |
 
 ## Adding your own terms
 
@@ -126,8 +184,8 @@ too.
 | File | Purpose |
 | --- | --- |
 | `index.html` | The page |
-| `styles.css` | All styling. Elsevier palette and type scale are the custom properties at the top |
-| `app.js` | Term processing, the two views, colour weighting, PNG export |
+| `styles.css` | All styling. Elsevier palette and type scale are the custom properties at the top; the dark theme re-points them at the bottom |
+| `app.js` | Term processing, the three views, the motion engine, theming, colour weighting, PNG export |
 | `data/presets.js` | Generated dataset — do not edit by hand |
 | `data/manual-terms.js` | Hand-edited extra terms — safe to edit, never regenerated |
 | `build-dataset.py` | Turns the spreadsheet into `data/presets.js` |
