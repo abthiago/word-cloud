@@ -36,12 +36,20 @@ const CLOUD_WEIGHT = 600;
 /* Type sizes for the cloud, quoted at a 900px-wide plate and scaled down
    proportionally on narrower ones. Without this, a phone keeps the desktop
    sizes and d3-cloud quietly drops every term that will not fit. */
-const REF_WIDTH = 900;
-const MIN_FONT  = 24;
-const MAX_FONT  = 104;
+const REF_WIDTH  = 900;
+const REF_HEIGHT = 414;   // 900 x 0.46, the plate's resting aspect
+const MIN_FONT   = 24;
+const MAX_FONT   = 104;
 
-function fontRange(width) {
-  const k = Math.min(1, width / REF_WIDTH);
+/* Full screen the plate is roughly twice the reference width, and type
+   quoted for 900px looks lost on it. The cap is what keeps the in-page
+   plate at its designed sizes while letting the full-screen one scale
+   up: without it, the whole page would grow with the window. */
+const MAX_UPSCALE = 2.05;
+
+function fontRange(width, height, cap) {
+  // Both axes matter: a wide, shallow plate runs out of height first.
+  const k = Math.min(cap, width / REF_WIDTH, height / REF_HEIGHT);
   return {
     min: Math.max(11, Math.round(MIN_FONT * k)),
     max: Math.max(30, Math.round(MAX_FONT * k)),
@@ -81,6 +89,7 @@ const fitNote     = $('fit-note');
 const motionNote  = $('motion-note');
 const motionPause = $('motion-pause');
 const themeToggle = $('theme-toggle');
+const fsBtn       = $('plate-fs');
 
 const switchOpts  = Array.from(document.querySelectorAll('.switch-opt'));
 
@@ -127,10 +136,6 @@ const activePreset = () => PRESETS.find(p => p.id === presetId) || null;
    and recolour the cloud that is already drawn — no relayout, which
    is what keeps the switch instant.
 ══════════════════════════════════════════════════════════════ */
-
-const prefersDark = window.matchMedia
-  ? window.matchMedia('(prefers-color-scheme: dark)')
-  : null;
 
 const theme = () => document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
 
@@ -313,9 +318,16 @@ function render(terms) {
   stopMotion();
   if (layout) { layout.stop(); layout = null; }
 
+  /* In the page the plate's height is derived from its width, which keeps
+     the figure a fixed aspect however the window is sized. Full screen it
+     is the screen, so the real measured height is used and the cloud fills
+     the display edge to edge. */
+  const full   = isFullscreen();
   const width  = plate.clientWidth || 1100;
-  const height = Math.max(Math.round(width * 0.46), 320);
-  const range  = fontRange(width);
+  const height = full
+    ? (plate.clientHeight || Math.max(Math.round(width * 0.46), 320))
+    : Math.max(Math.round(width * 0.46), 320);
+  const range  = fontRange(width, height, full ? MAX_UPSCALE : 1);
   const scale  = sizeScale(terms, range);
   const hi = terms[0].value;
   const lo = terms[terms.length - 1].value;
@@ -641,6 +653,70 @@ function refresh({ announce = false } = {}) {
   updateCaption();
 }
 
+/* ══════════════════════════════════════════════════════════════
+   FULL SCREEN
+
+   One click puts the cloud on the whole screen with nothing else on it:
+   the top bar, the caption and the buttons under the plate are all
+   outside the element that goes full screen, so they simply are not
+   there. The Fullscreen API is prefixed on older WebKit, hence the
+   small shims.
+
+   The cloud is laid out again rather than scaled up. Scaling a 1180px
+   layout to 1920 would leave the same gaps and the same type
+   relationships, just bigger and softer; re-running d3-cloud at the new
+   size repacks the terms and re-quotes the type for the screen, which is
+   the whole point of doing this on a projector.
+══════════════════════════════════════════════════════════════ */
+
+const fsElement = () =>
+  document.fullscreenElement || document.webkitFullscreenElement || null;
+
+const isFullscreen = () => fsElement() === plate;
+
+function paintFsButton() {
+  const on = isFullscreen();
+  plate.classList.toggle('is-fs', on);
+  fsBtn.setAttribute('aria-pressed', String(on));
+  fsBtn.setAttribute('aria-label', on ? 'Leave full screen' : 'Show the cloud full screen');
+  fsBtn.title = on ? 'Leave full screen (Esc)' : 'Full screen (F)';
+}
+
+function toggleFullscreen() {
+  if (isFullscreen()) {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (exit) exit.call(document);
+    return;
+  }
+
+  const req = plate.requestFullscreen || plate.webkitRequestFullscreen;
+  if (!req) {
+    // Kiosk browsers and a few embeds refuse it. Say so rather than
+    // leaving a button that does nothing when pressed.
+    say(fitNote, 'This browser will not let the page go full screen. Use its own full-screen control instead — F11 on Windows.', 'warn');
+    return;
+  }
+
+  // Firefox rejects rather than throws, so both paths need catching.
+  try {
+    const r = req.call(plate);
+    if (r && typeof r.catch === 'function') r.catch(() => {});
+  } catch { /* refused — paintFsButton never runs, so nothing to undo */ }
+}
+
+/* Entering and leaving both change the plate's size, so the cloud has to
+   be laid out again either way. Deferred a frame because the browser
+   reports the change before it has finished resizing the element, and
+   reading clientWidth too early lays the cloud out for the old box. */
+function onFullscreenChange() {
+  paintFsButton();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      if (cloud.style.display !== 'none' && cloud.querySelector('svg')) refresh();
+    });
+  });
+}
+
 /* ══ CAPTION ═══════════════════════════════════════════════════ */
 
 function updateCaption() {
@@ -650,11 +726,11 @@ function updateCaption() {
   legendAdded.hidden = added.length === 0;
 
   if (preset) {
-    const pv = preset.provenance || {};
-    capSource.textContent =
-      `Source: Microsoft Forms export "${pv.file}", sheet ${pv.sheet}, column ` +
-      `"${(pv.column || '').replace(/\s+/g, ' ').replace(/[�]/g, '—').trim()}". ` +
-      `Extracted ${pv.generated} by build-dataset.py in this repository.`;
+    /* Named, not itemised. The room does not need the file name, the sheet
+       and the extraction date under the figure; what it needs to know is
+       that these are their own words, taken from the question they were
+       asked. The full provenance stays in the repository README. */
+    capSource.textContent = 'Source: Poll, "Keywords – what\'s on your mind?"';
   } else {
     const name = fileName.textContent.trim();
     capSource.textContent = name
@@ -947,24 +1023,16 @@ themeToggle.addEventListener('click', () => setTheme(theme() === 'dark' ? 'light
 
 motionPause.addEventListener('click', toggleMotionPause);
 
+fsBtn.addEventListener('click', toggleFullscreen);
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
 /* A hidden tab still runs requestAnimationFrame in some browsers and
    throttles it in others; freezing is both cheaper and less jarring than
    coming back to a cloud that jumped. */
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) freezeMotion(); else runMotion();
 });
-
-/* No stored choice means the page is following the system, so keep
-   following it if the system changes while the page is open. */
-if (prefersDark && prefersDark.addEventListener) {
-  prefersDark.addEventListener('change', e => {
-    let saved = null;
-    try { saved = localStorage.getItem(THEME_KEY); } catch { /* private mode */ }
-    if (saved !== 'dark' && saved !== 'light') {
-      setTheme(e.matches ? 'dark' : 'light', { remember: false });
-    }
-  });
-}
 
 /* Someone turning "reduce motion" on or off while the page is open should
    see the motion view honour it without a reload. */
@@ -980,6 +1048,15 @@ scrim.addEventListener('click', closeDrawer);
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !drawer.hidden) closeDrawer();
+
+  /* F for full screen — but not while someone is typing into the drawer
+     or the add-a-term box, and not on top of a modifier chord. */
+  if ((e.key === 'f' || e.key === 'F') && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    const el = document.activeElement;
+    const typing = el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ||
+                          el.tagName === 'SELECT' || el.isContentEditable);
+    if (!typing) { e.preventDefault(); toggleFullscreen(); }
+  }
 });
 
 presetSel.addEventListener('change', () => {
@@ -1043,6 +1120,7 @@ window.addEventListener('resize', () => {
 
 stopwords.value = DEFAULT_STOPWORDS.join(', ');
 paintThemeToggle();
+paintFsButton();
 initPresets();
 
 // ?view=words or ?view=motion opens straight on that cut.

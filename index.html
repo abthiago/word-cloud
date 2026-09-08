@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>What this room came to talk about — Elsevier roundtable, 9 September 2026</title>
-<meta name="description" content="Keywords submitted by participants ahead of the Elsevier roundtable on 9 September 2026." />
+<title>Elsevier roundtable: The reality of AI in the lab — 9 September 2026</title>
+<meta name="description" content="Keywords submitted by participants ahead of the Elsevier roundtable “The reality of AI in the lab”, 9 September 2026." />
 
-<!-- Theme is resolved before the first paint, so a dark-mode visitor never
-     sees a white flash. Kept inline and tiny for that reason. -->
+<!-- Theme is resolved before the first paint, so a returning dark-mode
+     visitor never sees a white flash. Light is the default and the system
+     preference is deliberately not consulted: this page is shown on a
+     projector and in a room, where the light plate is the one that reads.
+     Dark is opt-in, and only sticks once someone has asked for it. -->
 <script>
   (function () {
     var t = 'light';
     try {
-      var saved = localStorage.getItem('roundtable.theme.v1');
-      t = (saved === 'dark' || saved === 'light')
-        ? saved
-        : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    } catch (e) { /* private mode — fall back to light */ }
+      if (localStorage.getItem('roundtable.theme.v1') === 'dark') t = 'dark';
+    } catch (e) { /* private mode — stay light */ }
     document.documentElement.setAttribute('data-theme', t);
   })();
 </script>
@@ -32,9 +32,13 @@
 <header class="topbar">
   <div class="topbar-in">
 
+    <!-- Title lockup. One line, two weights: the host reads as the label,
+         the subject as the headline. The colon is the hinge between them. -->
     <p class="mark">
       <span class="mark-rule" aria-hidden="true"></span>
-      <span class="mark-text">Elsevier roundtable</span>
+      <span class="mark-name">Elsevier roundtable<span class="mark-colon" aria-hidden="true">:</span></span>
+      <span class="mark-topic">The reality of AI in the lab</span>
+      <span class="mark-dot" aria-hidden="true"></span>
       <span class="mark-date">9 September 2026</span>
     </p>
 
@@ -85,6 +89,26 @@
         <p class="plate-empty-help">Open <strong>Build</strong> to paste text, drop in a file, or type terms by hand.</p>
       </div>
       <div id="cloud"></div>
+
+      <!-- Full screen. Lives on the plate rather than in the top bar,
+           because it acts on the plate: pressing it takes the cloud alone
+           to the whole screen. Both glyphs are in the DOM and CSS reveals
+           the one that applies, the same idiom as the theme button. -->
+      <button class="plate-fs" id="plate-fs" aria-pressed="false"
+              aria-label="Show the cloud full screen" title="Full screen (F)">
+        <span class="fs-icon fs-icon-open" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <path d="M6.4 1.9H2.6a.7.7 0 00-.7.7v3.8M10.6 1.9h3.8a.7.7 0 01.7.7v3.8M6.4 15.1H2.6a.7.7 0 01-.7-.7v-3.8M10.6 15.1h3.8a.7.7 0 00.7-.7v-3.8"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="fs-icon fs-icon-close" aria-hidden="true">
+          <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+            <path d="M2.2 6.3H6a.7.7 0 00.7-.7V1.8M14.8 6.3H11a.7.7 0 01-.7-.7V1.8M2.2 10.7H6a.7.7 0 01.7.7v3.8M14.8 10.7H11a.7.7 0 00-.7.7v3.8"
+                  stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </span>
+      </button>
     </div>
 
     <!-- Figure caption: doubles as the legend and the source citation -->
@@ -98,9 +122,8 @@
 
       <p class="cap-source" id="cap-source"></p>
       <p class="cap-source cap-privacy">
-        Participant names, e-mail addresses and dietary requirements are excluded from
-        this page and from its repository.
-        <a href="https://github.com/abthiago/word-cloud#how-the-terms-are-derived">How the terms are derived</a>
+        Participant names, e-mail addresses and dietary requirements are fully excluded
+        from this page and from its repository.
       </p>
     </figcaption>
 

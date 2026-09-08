@@ -1,8 +1,9 @@
 # Roundtable word cloud
 
 A free, self-hosted page that shows the keywords participants submitted ahead of
-the Elsevier roundtable on 9 September 2026. It runs entirely in the browser —
-no server, no build step, no account, nothing to pay for.
+**Elsevier roundtable: The reality of AI in the lab**, 9 September 2026. It runs
+entirely in the browser — no server, no build step, no account, nothing to pay
+for.
 
 **Live page:** https://abthiago.github.io/word-cloud/
 
@@ -13,6 +14,21 @@ Three views of the same answers, switchable in the top right:
 | Phrases | Each answer kept as the participant phrased it, so `Knowledge Management` stays one term | [`?view=phrases`](https://abthiago.github.io/word-cloud/?view=phrases) |
 | Single words | Answers broken into individual words, stop words removed | [`?view=words`](https://abthiago.github.io/word-cloud/?view=words) |
 | Motion | The phrases view, animated — for playing on screen while the room fills up | [`?view=motion`](https://abthiago.github.io/word-cloud/?view=motion) |
+
+## Full screen
+
+The icon in the top-right corner of the plate — or the <kbd>F</kbd> key — puts
+the cloud on the whole screen with nothing else on it: no top bar, no caption,
+no buttons. <kbd>Esc</kbd> or the same icon brings it back.
+
+The cloud is laid out again at the new size rather than scaled up. Scaling a
+1180px layout to a 1920px screen would keep the same gaps and the same type
+relationships, just larger and softer; re-running the layout repacks the terms
+and re-quotes the type for the screen, which is the point of doing this on a
+projector at all. `MAX_UPSCALE` in [`app.js`](app.js) caps how far the type is
+allowed to grow.
+
+## Saving a PNG
 
 `Save PNG` exports the cloud at 2× for a slide or a print. It always exports
 on white in the light-mode colours and with every term at its resting
@@ -43,11 +59,11 @@ motion section in [`app.js`](app.js) if you want it faster or calmer.
 
 ## Dark mode
 
-The button between the view switch and **Build** in the top right toggles dark
-mode. On a first visit the page follows your operating system, and it keeps
-following it if you change that setting while the page is open; once you use
-the button, your choice is remembered in this browser and the system setting is
-ignored.
+Light is the default, and it stays the default whatever your operating system
+is set to: this page is shown on a projector and in a room, where the light
+plate is the one that reads. Dark is opt-in — the button between the view
+switch and **Build** in the top right turns it on, and that choice is then
+remembered in this browser until you turn it off again.
 
 Both themes are one design, not two. Every colour in
 [`styles.css`](styles.css) is a custom property, and the `[data-theme="dark"]`
@@ -105,6 +121,11 @@ Terms added by hand are drawn in Elsevier blue, so it stays obvious which terms
 came from participants and which did not.
 
 ## How the terms are derived
+
+The caption under the figure names the source rather than itemising it —
+*Source: Poll, "Keywords – what's on your mind?"* — because that is what the
+room needs to know: these are their own words, taken from the question they
+were asked. The full provenance is the section below.
 
 `build-dataset.py` reads the registration spreadsheet and writes
 `data/presets.js`. Re-run it whenever new responses come in:
