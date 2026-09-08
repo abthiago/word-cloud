@@ -1,0 +1,17 @@
+# ── Personal data — NEVER commit ─────────────────────────────
+# This repository is public (required for free GitHub Pages hosting).
+# The Microsoft Forms export contains participant names, work e-mail
+# addresses and dietary requirements. Only the anonymised keyword terms
+# in data/presets.js are published.
+*.xlsx
+*.xls
+*.csv
+
+# ── OS / editor noise ────────────────────────────────────────
+Thumbs.db
+desktop.ini
+.DS_Store
+__pycache__/
+*.pyc
+.vscode/
+.idea/
