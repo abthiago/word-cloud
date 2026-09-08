@@ -256,25 +256,47 @@ function render(terms) {
   const hi = terms[0].value;
   const lo = terms[terms.length - 1].value;
 
-  const words = terms.map(t => ({
+  const floor = Math.min(range.min, 13);
+
+  const buildWords = (shrink) => terms.map(t => ({
     text:  t.text,
     value: t.value,
     added: !!t.added,
-    size:  fitWidth(scale(t.value), t.text, width, Math.min(range.min, 13)),
+    size:  Math.max(floor, Math.round(fitWidth(scale(t.value), t.text, width, floor) * shrink)),
     color: termColor(t, hi, lo),
   }));
 
-  layout = d3.layout.cloud()
-    .size([width, height])
-    .words(words)
-    .padding(7)
-    .rotate(0)
-    .font(CLOUD_FONT)
-    .fontWeight(CLOUD_WEIGHT)
-    .fontSize(d => d.size)
-    .spiral('archimedean')
-    .on('end', draw)
-    .start();
+  /* d3-cloud drops any term it cannot place, and whether a term fits depends
+     on how the ones before it happened to pack. Rather than tune the size
+     constants until it works for this one dataset, shrink and try again until
+     everything lands — which keeps working as terms are added. */
+  const MIN_SHRINK = 0.5;
+  let words = [];
+
+  function attempt(shrink) {
+    if (layout) { layout.stop(); layout = null; }
+    words = buildWords(shrink);
+
+    layout = d3.layout.cloud()
+      .size([width, height])
+      .words(words)
+      .padding(7)
+      .rotate(0)
+      .font(CLOUD_FONT)
+      .fontWeight(CLOUD_WEIGHT)
+      .fontSize(d => d.size)
+      .spiral('archimedean')
+      .on('end', placed => {
+        if (placed.length < words.length && shrink > MIN_SHRINK) {
+          attempt(shrink * 0.9);
+          return;
+        }
+        draw(placed);
+      })
+      .start();
+  }
+
+  attempt(1);
 
   function draw(placed) {
     cloud.innerHTML = '';
