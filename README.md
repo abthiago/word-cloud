@@ -176,26 +176,33 @@ from, so the output can be checked by eye.
 The steps it takes:
 
 1. Reads the keywords column and skips blank answers. Six of the seven people
-   who submitted the form gave keywords.
-2. Splits each answer on commas, semicolons, periods, slashes and newlines,
+   who submitted the form gave keywords, and one of those six is set aside (see
+   step 2), leaving five answers in the cloud.
+2. **Excludes** any answer listed in the `EXCLUDED_RESPONSES` set at the top of
+   the script. One respondent used the keyword box to ask the panel questions —
+   *"How can Elsevier AI support us? / Easy access?"* — rather than to name
+   terms, and made the same point properly in their answer to the challenge
+   question. That belongs in the discussion, not in the cloud. The exclusion
+   happens before anything is counted, so the answer influences no other
+   phrase's weight either.
+3. Splits each answer on commas, semicolons, periods, slashes and newlines,
    because that is how participants separated their terms.
-3. Applies a small set of **editorial rewrites**, all listed in the `REWRITES`
-   dictionary at the top of the script. Two people answered in sentences rather
+4. Applies a small set of **editorial rewrites**, all listed in the `REWRITES`
+   dictionary at the top of the script. One person answered in a sentence rather
    than terms, and two phrases were too long to read at display size, so:
-   `How can Elsevier AI support us` → `Elsevier AI Support`,
    `AI in Literature search and analysis` → `AI in Literature Search`,
    `Scaling up projects faster` → `Scaling Up Projects`, and
    `cost efficient` → `Cost Efficiency`.
-4. **Weights** each phrase by its most-mentioned content word across the whole
-   set of answers. `AI` was raised by two participants three times over, so the
-   three phrases containing it carry weight 3; `Data` appears twice, so `Data`
-   and `Data Harmonization` carry weight 2; everything else carries weight 1.
-   This is why three AI phrases dominate the cloud — it reflects how often the
-   theme came up, not an editorial choice.
+5. **Weights** each phrase by its most-mentioned content word across the whole
+   set of answers. `AI`, `Data` and `Innovation` were each raised twice, so the
+   five phrases containing them carry weight 2; everything else carries weight
+   1. This is why those five lead the cloud — it reflects how often the theme
+   came up, not an editorial choice.
 
 Colour encodes the same weighting rather than decorating it: orange for the
-theme raised most often, near-black for themes raised more than once, grey for
-those raised once, and blue for terms added by hand.
+themes raised most often, grey for those raised once, and blue for terms added
+by hand. A third tone, near-black, appears whenever the answers produce three or
+more weight levels.
 
 ## Sources
 
@@ -213,7 +220,9 @@ those raised once, and blue for terms added by hand.
 - **Participant keywords:** Microsoft Forms export
   `Round table participants 24 08 2026.xlsx`, sheet `Sheet1`, column
   `Keywords – what's on your mind? (The purpose of this is to create a relevant
-  word cloud)`. Seven submissions, six containing keywords. Extracted
+  word cloud)`. Seven submissions, six containing keywords, of which five are
+  used — one answer asked the panel questions instead of naming terms and is
+  excluded via `EXCLUDED_RESPONSES`. Extracted
   2026-09-08 by `build-dataset.py`.
 - The spreadsheet itself is **not in this repository** and is not published. It
   lives only in the account manager's OneDrive.
