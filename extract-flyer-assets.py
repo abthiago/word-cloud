@@ -49,6 +49,7 @@ BLEED_MAX = 1400
 BLEED_QUALITY = 78
 CHIP_CROP = 640                    # pixels of the original, centred
 CHIP_SIZE = 96                     # what we write, ~3.7x the 26px it is shown at
+FAVICON_SIZE = 48                  # the same crop again, for the browser tab
 
 
 def main():
@@ -89,6 +90,14 @@ def main():
     chip_path = os.path.join(OUT_DIR, "vortex-mark.png")
     chip.save(chip_path, optimize=True)
     print(f"{chip_path:34} {CHIP_SIZE}x{CHIP_SIZE}  (centre crop of {SHARD})")
+
+    # The tab icon is the same crop again. At 16px it reads as an orange tile
+    # rather than a starburst, which is the right amount of detail for a
+    # favicon and still unmistakably the flyer's orange.
+    icon = shard.crop(box).resize((FAVICON_SIZE, FAVICON_SIZE), Image.LANCZOS)
+    icon_path = os.path.join(OUT_DIR, "favicon.png")
+    icon.save(icon_path, optimize=True)
+    print(f"{icon_path:34} {FAVICON_SIZE}x{FAVICON_SIZE}  (centre crop of {SHARD})")
 
 
 if __name__ == "__main__":

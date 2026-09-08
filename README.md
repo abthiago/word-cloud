@@ -58,7 +58,7 @@ extracted from it is, in `assets/`.
 | Orange `#FF551D` | the accent, and terms raised most often — `--orange` |
 | Blue `#2354FF` | links, and terms added by hand — `--blue` |
 | Calendar, globe and speech-bubble icons | `assets/icon-when.png`, `assets/icon-where.png`, `assets/icon-who.png` |
-| Orange shard graphic | `assets/vortex-mark.png` (the brand chip in the top bar) and `assets/vortex.jpg` (the faint corner bleed) |
+| Orange shard graphic | `assets/vortex-mark.png` (the brand chip in the top bar), `assets/favicon.png` (the tab icon) and `assets/vortex.jpg` (the faint corner bleed) |
 | Tiempos Text headline, roman + italic | the top-bar headline, with *in the lab* italic exactly as the flyer sets it |
 | National 2 body | the interface type |
 
@@ -205,7 +205,7 @@ those raised once, and blue for terms added by hand.
   icons in `assets/` are that file's embedded images `X21` (calendar), `X19`
   (globe) and `X17` (speech bubbles), extracted unaltered by
   `extract-flyer-assets.py`; `assets/vortex.jpg` and `assets/vortex-mark.png`
-  are downscales and a centre crop of its embedded image `X4`; the palette
+  are downscales and centre crops of its embedded image `X4`; the palette
   values are the file's own fill colours. The PDF is **not committed** — it
   lives only in the account manager's OneDrive, next to `build-dataset.py`.
 - **RSVP form linked from the flyer and cited in the page caption:**
@@ -271,7 +271,7 @@ too.
 | `data/manual-terms.js` | Hand-edited extra terms — safe to edit, never regenerated |
 | `build-dataset.py` | Turns the spreadsheet into `data/presets.js` |
 | `extract-flyer-assets.py` | Pulls the icons and the shard graphic out of the invitation PDF into `assets/` |
-| `assets/` | The five images taken from the invitation — generated, do not edit by hand |
+| `assets/` | The six images taken from the invitation, favicon included — generated, do not edit by hand |
 | `CS-2775_Flyer_Roundtable agenda_1_F.pdf` | The official invitation: the source of the palette, the type, the icons and the three facts |
 
 [d3](https://d3js.org/) and
